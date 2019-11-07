@@ -7,8 +7,11 @@ while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
 
+    # Blur image
+    blurred_frame = cv2.GaussianBlur(frame, (5, 5), 0)
+
     # Convert from BGR to HSV
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
 
     # Defining the range of color in HSV
     lower_hand = np.array([30, 150, 80])
@@ -16,6 +19,10 @@ while True:
 
     # Threshold the HSV image to only get hand colors
     mask = cv2.inRange(hsv, lower_hand, upper_hand)
+
+    # Contours
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(frame, contours, -1, (0, 255, 0), 3)
 
     # Display
     cv2.imshow('frame', frame)

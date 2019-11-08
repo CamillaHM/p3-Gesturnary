@@ -14,15 +14,19 @@ while True:
     hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
 
     # Defining the range of color in HSV
-    lower_hand = np.array([30, 150, 80])
-    upper_hand = np.array([125, 255, 255])
+    # Green
+    # lower_hand = np.array([30, 150, 80])
+    # upper_hand = np.array([125, 255, 255])
+    # Blue
+    lower_hand = np.array([38, 85, 0])
+    upper_hand = np.array([120, 255, 255])
 
     # Threshold the HSV image to only get hand colors
     mask = cv2.inRange(hsv, lower_hand, upper_hand)
 
     # Contours
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(frame, contours, -1, (0, 255, 0), 3)
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(frame, contours, -2, (0, 255, 0), 3)
 
     # Display
     cv2.imshow('frame', frame)
@@ -32,5 +36,3 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
-
-# test test

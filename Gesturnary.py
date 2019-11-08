@@ -25,8 +25,27 @@ while True:
     mask = cv2.inRange(hsv, lower_hand, upper_hand)
 
     # Contours
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(frame, contours, -2, (0, 255, 0), 3)
+
+    if contours:
+        cnt = contours[0]
+        epsilon = 0.0005 * cv2.arcLength(cnt, True)
+        approx = cv2.approxPolyDP(cnt, epsilon, True)
+
+        # hull = cv2.convexHull(cnt)
+
+        hull = cv2.convexHull(approx, returnPoints=False)
+        defects = cv2.convexityDefects(approx, hull)
+
+        if defects is not None:
+            for i in range(defects.shape[0]):
+                s, e, f, d = defects[i, 0]
+                start = tuple(approx[s][0])
+                end = tuple(approx[e][0])
+                far = tuple(approx[f][0])
+                cv2.line(frame, start, end, [255, 255, 0], 2)
+                cv2.circle(frame, far, 5, [0, 0, 255], -1)
 
     # Display
     cv2.imshow('frame', frame)

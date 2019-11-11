@@ -10,8 +10,6 @@ while True:
     # Blur image
     blurred_frame = cv2.bilateralFilter(frame,9,75,75)
 
-
-
     # Convert from BGR to HSV
     hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
 
@@ -45,7 +43,6 @@ while True:
         hull = cv2.convexHull(max_contour, returnPoints=False)
         defects = cv2.convexityDefects(max_contour, hull)
 
-
         # Camera
 
         if defects is not None:
@@ -57,9 +54,30 @@ while True:
                 cv2.line(frame, start, end, [255, 255, 0], 2)
                 cv2.circle(frame, far, 5, [0, 0, 255], -1)
 
-    # Display
-    cv2.imshow('frame', frame)
+                # convert image to grayscale image
+                gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+                # convert the grayscale image to binary image
+                ret, thresh = cv2.threshold(gray_image, 40, 100, 80)
+
+                # calculate moments of binary image
+                M = cv2.moments(thresh)
+
+                # calculate x,y coordinate of center
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+                # put text and highlight the center
+                cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
+                cv2.putText(frame, "Center of glove", (cX - 25, cY - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+
+
+
+                    # Display
     cv2.imshow('mask', mask)
+    cv2.imshow('frame', frame)
+
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 

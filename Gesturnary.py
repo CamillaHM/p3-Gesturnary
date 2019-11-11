@@ -15,11 +15,11 @@ while True:
 
     # Defining the range of color in HSV
     # Green
-    # lower_hand = np.array([30, 150, 80])
-    # upper_hand = np.array([125, 255, 255])
+    lower_hand = np.array([30, 150, 80])
+    upper_hand = np.array([125, 255, 255])
     # Blue
-    lower_hand = np.array([38, 85, 0])
-    upper_hand = np.array([120, 255, 255])
+    # lower_hand = np.array([38, 85, 0])
+    # upper_hand = np.array([120, 255, 255])
 
     # Threshold the HSV image to only get hand colors
     mask = cv2.inRange(hsv, lower_hand, upper_hand)

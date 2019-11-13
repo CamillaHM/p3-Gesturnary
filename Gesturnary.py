@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 import cv2
 from contextlib import suppress
@@ -15,7 +13,10 @@ if Realcam is True:
 if Realcam is False:
     cap = cv2.VideoCapture('Vid1.mp4')
 
+# drawing array
+points = []
 
+draw = True
 
 while(cap.isOpened()):
     # Capture frame-by-frame
@@ -35,18 +36,17 @@ while(cap.isOpened()):
         # Threshold the HSV image to only get hand colors
         mask = cv2.inRange(hsv, lower_hand, upper_hand)
 
-        # Contours
-
+        # if either fail, they will suppress and try the other
         with suppress(Exception):
             contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         with suppress(Exception):
             image, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        # draw contour
         cv2.drawContours(frame, contours, -2, (0, 255, 0), 3)
 
 
-
-        # Red bounding box around countour
+        # bounding boxes and circles around countour
         for c in contours:
             # get the bounding rect
             x, y, w, h = cv2.boundingRect(c)
@@ -58,7 +58,7 @@ while(cap.isOpened()):
             box = cv2.boxPoints(rect)
             # convert all coordinates floating point values to int
             box = np.int0(box)
-            # draw a red 'nghien' rectangle
+            # draw a red rectangle
             #cv2.drawContours(frame, [box], 0, (0, 0, 255))
 
             # finally, get the min enclosing circle
@@ -68,6 +68,7 @@ while(cap.isOpened()):
             radius = int(radius)
             # and draw the circle in blue
             img = cv2.circle(frame, center, radius, (255, 0, 0), 2)
+            # highlight center
             cv2.circle(frame, ((int(x),int(y))), 5, (255, 0, 0), -1)
 
         if contours:
@@ -81,8 +82,6 @@ while(cap.isOpened()):
             hull = cv2.convexHull(max_contour, returnPoints=False)
             defects = cv2.convexityDefects(max_contour, hull)
 
-            # Camera
-
             if defects is not None:
                 for i in range(defects.shape[0]):
                     s, e, f, d = defects[i, 0]
@@ -91,23 +90,56 @@ while(cap.isOpened()):
                     far = tuple(max_contour[f][0])
                     cv2.line(frame, start, end, [255, 255, 0], 2)
                     cv2.circle(frame, end, 5, [0, 0, 255], -1)
+
+                # draw line from center to end
                     cv2.line(frame, center, end, [255, 255, 0], 2)
 
+                    c = 0
+                    X = 0
+                    Y = 0
+                    # white background on "drawing"
+                    drawing = np.full(frame.shape, 255, dtype=np.uint8)
+                    key = cv2.waitKey(1)
 
-                    # Display
-        cv2.imshow('mask', mask)
-        cv2.imshow('frame', frame)
+
+                    if draw is True:
+                        for item in contours:
+                            for i in item:
+                                X += i[0][0]
+                                Y += i[0][1]
+                                c += 1
+                        try:
+                            points.append(end)
+                        except:
+                            pass
+                    for p in points:
+                        # draw circles on frame and add them to points array
+                        cv2.circle(frame, tuple(p), 5, (0, 0, 255), -1)
+                        # draw circles on drawing and add them to points array
+                        cv2.circle(drawing, tuple(p), 15, (0, 0, 0), -1)
+
+                    # draw circle at drawing point in "drawing"
+                    cv2.circle(drawing, end, 15, [0, 0, 255], -1)
+
+                    # S to stop drawing
+                    if (key & 0xFF == ord('s')) and draw == True:
+                        draw = False
+
+                    # S to start drawing
+                    elif key & 0xFF == ord('s') and draw == False:
+                        draw = True
+
+        # Show all images
+        cv2.imshow('Mask', mask)
+        cv2.imshow('Frame', frame)
+        cv2.imshow('Drawing', drawing)
 
     else:
-        # replay
+        # replay mp4
        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-
-
-
-
 
 cap.release()
 cv2.destroyAllWindows()

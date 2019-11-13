@@ -1,9 +1,11 @@
+import sys
+
 import numpy as np
 import cv2
-
+from contextlib import suppress
 
 # Toggle between using camera or test video
-Realcam = True
+Realcam = False
 
 # True, to use camera as input
 if Realcam is True:
@@ -34,10 +36,10 @@ while(cap.isOpened()):
 
         # Contours
 
-
-        contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-
+        with suppress(Exception):
+            contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        with suppress(Exception):
+            image, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         cv2.drawContours(frame, contours, -2, (0, 255, 0), 3)
 

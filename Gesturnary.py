@@ -16,6 +16,7 @@ if Realcam is False:
     cap = cv2.VideoCapture('Vid1.mp4')
 
 
+
 while(cap.isOpened()):
     # Capture frame-by-frame
     ret, frame = cap.read()
@@ -43,6 +44,32 @@ while(cap.isOpened()):
 
         cv2.drawContours(frame, contours, -2, (0, 255, 0), 3)
 
+
+
+        # Red bounding box around countour
+        for c in contours:
+            # get the bounding rect
+            x, y, w, h = cv2.boundingRect(c)
+            # draw a green rectangle to visualize the bounding rect
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            # get the min area rect
+            rect = cv2.minAreaRect(c)
+            box = cv2.boxPoints(rect)
+            # convert all coordinates floating point values to int
+            box = np.int0(box)
+            # draw a red 'nghien' rectangle
+            #cv2.drawContours(frame, [box], 0, (0, 0, 255))
+
+            # finally, get the min enclosing circle
+            (x, y), radius = cv2.minEnclosingCircle(c)
+            # convert all values to int
+            center = (int(x), int(y))
+            radius = int(radius)
+            # and draw the circle in blue
+            img = cv2.circle(frame, center, radius, (255, 0, 0), 2)
+            cv2.circle(frame, ((int(x),int(y))), 5, (255, 0, 0), -1)
+
         if contours:
             # assume largest contour is the one of interest
             max_contour = max(contours, key=cv2.contourArea)
@@ -63,24 +90,9 @@ while(cap.isOpened()):
                     end = tuple(max_contour[e][0])
                     far = tuple(max_contour[f][0])
                     cv2.line(frame, start, end, [255, 255, 0], 2)
-                    cv2.circle(frame, far, 5, [0, 0, 255], -1)
+                    cv2.circle(frame, end, 5, [0, 0, 255], -1)
+                    cv2.line(frame, center, end, [255, 255, 0], 2)
 
-                    # convert image to grayscale image
-                    gray_image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-                    # convert the grayscale image to binary image
-                    ret, thresh = cv2.threshold(gray_image, 40, 100, 80)
-
-                    # calculate moments of binary image
-                    M = cv2.moments(thresh)
-
-                    # calculate x,y coordinate of center
-                    cX = int(M["m10"] / M["m00"])
-                    cY = int(M["m01"] / M["m00"])
-                    # put text and highlight the center
-                    cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
-                    cv2.putText(frame, "Center of glove", (cX - 25, cY - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                                (255, 255, 255), 2)
 
                     # Display
         cv2.imshow('mask', mask)
@@ -92,6 +104,8 @@ while(cap.isOpened()):
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+
 
 
 

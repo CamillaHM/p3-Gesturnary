@@ -1,26 +1,74 @@
 import numpy as np
 import cv2
 from contextlib import suppress
-
 # Toggle between using camera or test video
 Realcam = False
 
-# True, to use camera as input
-if Realcam is True:
+if Realcam == True:
     cap = cv2.VideoCapture(0)
 
-# False, to use video as input
-if Realcam is False:
+if Realcam == False:
     cap = cv2.VideoCapture('Vid1.mp4')
 
-# drawing array
-points = []
+WhiteBK = False
 
-draw = True
+colorsArray = []
+
+pMarkerPos = []
+
+# PenMarker settings
+pMarker = True    # Default setting
+pMarkerSize = 20
+pMarkerPos = []
+pMarkerColor = (255,0,0)
+pMarkerThick = -1
+
+# EraserMarker settings
+eMarker = True    # Default setting
+eMarkerSize = 20
+eMarkerColor = (0,0,0)
+eMarkerThick = 1
+
+# Pen settings
+draw = True    # Default setting
+PenSize = 4
+PenColor = (0,0,0)
+
+# Eraser settings
+eraser = False    # Default setting
+EraserSize = 20
+EraserColor = (255,255,255)
+
+Lastend = ()
+
+key = cv2.waitKey(1)
 
 while(cap.isOpened()):
     # Capture frame-by-frame
     ret, frame = cap.read()
+
+    # clear drawing array with C
+    if (key & 0xFF == ord('c')):
+        points = []
+        WhiteBK = False
+
+    # D to start drawing
+    elif key & 0xFF == ord('s') and draw == False:
+        draw = True
+        eraser = False
+        print("started drawing")
+
+    # E to stop drawing
+    if (key & 0xFF == ord('d')) and eraser == False:
+        eraser = True
+        draw = False
+        print("started eraser")
+
+    # E to start drawing
+    elif key & 0xFF == ord('a'):
+        eraser = False
+        draw = False
+        print("stopped all")
 
     if ret:
         # Blur image
@@ -82,11 +130,17 @@ while(cap.isOpened()):
             hull = cv2.convexHull(max_contour, returnPoints=False)
             defects = cv2.convexityDefects(max_contour, hull)
 
+            with suppress(Exception):
+                Lastend = end     # 1 - save current end position as copy.
+
+            # image = cv2.putText(drawing, 'OpenCV', end, font, 1, (200, 0, 0), 3, cv2.LINE_AA)
+
+
             if defects is not None:
                 for i in range(defects.shape[0]):
                     s, e, f, d = defects[i, 0]
                     start = tuple(max_contour[s][0])
-                    end = tuple(max_contour[e][0])
+                    end = tuple(max_contour[e][0])   # 2 - get new end position.
                     far = tuple(max_contour[f][0])
                     cv2.line(frame, start, end, [255, 255, 0], 2)
                     cv2.circle(frame, end, 5, [0, 0, 255], -1)
@@ -98,38 +152,26 @@ while(cap.isOpened()):
                     X = 0
                     Y = 0
                     # white background on "drawing"
-                    drawing = np.full(frame.shape, 255, dtype=np.uint8)
+
+                    if WhiteBK is False:
+                        drawing = np.full(frame.shape, 255, dtype=np.uint8)
+                        WhiteBK = True
                     key = cv2.waitKey(1)
 
-
+                    # Draw- draw circle at drawing point in "drawing"
+                    # Pen
                     if draw is True:
-                        for item in contours:
-                            for i in item:
-                                X += i[0][0]
-                                Y += i[0][1]
-                                c += 1
-                        try:
-                            points.append(end)
-                        except:
-                            pass
-                    for p in points:
-                        # draw circles on frame and add them to points array
-                        cv2.circle(frame, tuple(p), 5, (0, 0, 255), -1)
-                        # draw circles on drawing and add them to points array
-                        cv2.circle(drawing, tuple(p), 15, (0, 0, 0), -1)
+                        cv2.circle(drawing, end, PenSize, PenColor, -1)  # 3 - make circle at that position.
+                        with suppress(Exception):
+                            cv2.line(drawing, Lastend, end, PenColor, PenSize*2)
 
-                    # draw circle at drawing point in "drawing"
-                    cv2.circle(drawing, end, 15, [0, 0, 255], -1)
 
-                    # S to stop drawing
-                    if (key & 0xFF == ord('s')) and draw == True:
-                        draw = False
+                    # Eraser
+                    if eraser is True:
+                        cv2.circle(drawing, end, EraserSize, EraserColor, -1)
 
-                    # S to start drawing
-                    elif key & 0xFF == ord('s') and draw == False:
-                        draw = True
 
-        # Show all images
+                    # Show all images
         cv2.imshow('Mask', mask)
         cv2.imshow('Frame', frame)
         cv2.imshow('Drawing', drawing)

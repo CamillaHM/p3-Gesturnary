@@ -2,42 +2,70 @@ import numpy as np
 import cv2
 from contextlib import suppress
 # Toggle between using camera or test video
+
+
+# Settings # Settings # Settings
+
+
+# Test settings
+
+# Use real camera of test video
 Realcam = False
 
-if Realcam == True:
-    cap = cv2.VideoCapture(0)
-
-if Realcam == False:
-    cap = cv2.VideoCapture('Vid1.mp4')
-
-WhiteBK = False
-
-colorsArray = []
-
-pMarkerPos = []
+# Which test video to use
+Video = 1
+# 1 - One finger
+# 2 - Open hand
+# 3 - Switches between open and closed hand
 
 # PenMarker settings
-pMarker = True    # Default setting
+pMarker = True
 pMarkerSize = 20
 pMarkerPos = []
 pMarkerColor = (255,0,0)
 pMarkerThick = -1
 
 # EraserMarker settings
-eMarker = True    # Default setting
+eMarker = True
 eMarkerSize = 20
 eMarkerColor = (0,0,0)
 eMarkerThick = 1
 
 # Pen settings
-draw = True    # Default setting
+draw = True
 PenSize = 4
 PenColor = (0,0,0)
 
 # Eraser settings
-eraser = False    # Default setting
+eraser = False
 EraserSize = 20
 EraserColor = (255,255,255)
+
+
+
+# End of settings # End of settings # End of settings
+
+FingerVid = "Vid1.mp4"
+OpenVid = "Vid2.mp4"
+OpenAndClosedVid = "Vid3.mp4"
+
+if Realcam == True:
+    cap = cv2.VideoCapture(0)
+
+if Realcam == False:
+    if Video == 1:
+        cap = cv2.VideoCapture(FingerVid)
+    if Video == 2:
+        cap = cv2.VideoCapture(OpenVid)
+    if Video == 3:
+        cap = cv2.VideoCapture(OpenAndClosedVid)
+
+
+WhiteBK = False
+
+colorsArray = []
+
+pMarkerPos = []
 
 Lastend = ()
 
@@ -47,25 +75,25 @@ while(cap.isOpened()):
     # Capture frame-by-frame
     ret, frame = cap.read()
 
-    # clear drawing array with C
+    # C to clear drawing
     if (key & 0xFF == ord('c')):
-        points = []
-        WhiteBK = False
+        drawing = np.full(frame.shape, 255, dtype=np.uint8)
+        print("cleared drawing")
 
-    # D to start drawing
-    elif key & 0xFF == ord('s') and draw == False:
+    # S to start drawing
+    if key & 0xFF == ord('s') and draw == False:
         draw = True
         eraser = False
         print("started drawing")
 
-    # E to stop drawing
+    # D to stop drawing
     if (key & 0xFF == ord('d')) and eraser == False:
         eraser = True
         draw = False
         print("started eraser")
 
-    # E to start drawing
-    elif key & 0xFF == ord('a'):
+    # A to start drawing
+    if key & 0xFF == ord('a'):
         eraser = False
         draw = False
         print("stopped all")
@@ -162,8 +190,8 @@ while(cap.isOpened()):
                     # Pen
                     if draw is True:
                         cv2.circle(drawing, end, PenSize, PenColor, -1)  # 3 - make circle at that position.
-                        with suppress(Exception):
-                            cv2.line(drawing, Lastend, end, PenColor, PenSize*2)
+                        #with suppress(Exception):
+                            #cv2.line(drawing, Lastend, end, PenColor, PenSize*2)
 
 
                     # Eraser
@@ -185,3 +213,4 @@ while(cap.isOpened()):
 
 cap.release()
 cv2.destroyAllWindows()
+

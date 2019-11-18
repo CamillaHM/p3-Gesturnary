@@ -1,14 +1,11 @@
 import numpy as np
 import cv2
 from contextlib import suppress
-
-# Toggle between using camera or test video
-
 import math
 
 # Settings # Settings # Settings
 
-# Use real camera of test video
+# Use real camera or test videos
 Realcam = True
 
 # Which test video to use
@@ -41,9 +38,9 @@ EraserSize = 20
 EraserColor = (255, 255, 255)
 
 # End of settings # End of settings # End of settings
-
+MinCountourSize = 3000
+Playonce = False
 lastend = ()
-cnt = ()
 Max_Fingers = 4
 FingerVid = "Vid1.mp4"
 OpenVid = "Vid2.mp4"
@@ -61,14 +58,7 @@ if not Realcam:
         cap = cv2.VideoCapture(OpenAndClosedVid)
 
 WhiteBK = False
-
-colorsArray = []
-far = ()
-pMarkerPos = []
-centroid = ()
-contour = ()
-end = ()
-center = ()
+end=()
 cnt = 0
 drawing = ()
 key = cv2.waitKey(1)
@@ -92,11 +82,6 @@ def calculateFingers(res, drawing):  # -> finished bool, cnt: finger count
                 c = math.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
                 angle = math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c))  # cosine theorem
 
-                # Drawing stuff
-                # cv2.circle(frame, far, 8, [211, 84, 0], -1)
-
-                # cv2.line(frame, center, far, (255, 0, 255), -1)
-
                 if angle <= math.pi / 2:  # angle less than 90 degree, treat as fingers
                     if cnt <= Max_Fingers:  # stop finding fingers after x number has been found
                         cnt += 1
@@ -112,22 +97,6 @@ while cap.isOpened():
     # C to clear drawing
     if key & 0xFF == ord('c'):
         drawing = np.full(frame.shape, 255, dtype=np.uint8)
-        print("cleared drawing")
-
-    # S to start drawing
-    if key & 0xFF == ord('s') and draw is False:
-        draw = True
-        eraser = False
-        print("started drawing")
-
-    # D to stop drawing
-    if (key & 0xFF == ord('d')) and eraser is False:
-        eraser = True
-        draw = False
-        print("started eraser")
-
-    # C to clear
-    if key & 0xFF == ord('c'):
         WhiteBK = False
         print("cleared drawing")
 
@@ -150,10 +119,6 @@ while cap.isOpened():
             contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         with suppress(Exception):
             image, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-        # draw contour
-        cv2.drawContours(frame, contours, -2, (0, 255, 0), 3)
-
 
         if contours:
 
@@ -182,11 +147,11 @@ while cap.isOpened():
                     if area > maxArea:
                         maxArea = area
                         ci = i
-
                 res = contours[ci]
                 hull = cv2.convexHull(res)
-                cv2.drawContours(frame, [res], 0, (0, 255, 0), 2)
-                cv2.drawContours(frame, [hull], 0, (0, 0, 255), 3)
+                if maxArea >= MinCountourSize:
+                    cv2.drawContours(frame, [res], 0, (0, 255, 0), 2)
+                    cv2.drawContours(frame, [hull], 0, (0, 0, 255), 3)
 
                 with suppress(Exception):
                     isFinishCal, cnt = calculateFingers(res, drawing)
@@ -204,22 +169,15 @@ while cap.isOpened():
                 center = cX, cY
                 with suppress(Exception):
                     s = defects[:, 0][:, 0]
-                # put text and highlight the center
-                cv2.circle(frame, center, 5, (255, 0, 255), -1)
-
-                # cv2.line(drawing, center, far, (255, 0, 255), -1)
-
-
+                # Highlight the center
+                if maxArea >= MinCountourSize:
+                    cv2.circle(frame, center, 5, (255, 0, 255), -1)
 
                 # Draw
                 if cnt >= 4:
 
                     cv2.circle(drawing, center, PenSize, PenColor, -1)  # 3 - make circle at that position.
                     if draw is True:
-
-                        # with suppress(Exception):
-                        # cv2.line(drawing, Lastend, end, PenColor, PenSize*2)
-
                         with suppress(Exception):
                             cv2.line(drawing, lastend, center, PenColor, PenSize * 2)
 
@@ -237,10 +195,6 @@ while cap.isOpened():
                         lastend = ()
                         eraser = True
                         draw = False
-
-                # if isFinishCal is True and cnt <= 2:
-                # print(cnt)
-                # app('System Events').keystroke(' ')  # simulate pressing blank space
 
                 # Clear
                 if not WhiteBK:
@@ -268,6 +222,7 @@ while cap.isOpened():
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
 
 cap.release()
 cv2.destroyAllWindows()

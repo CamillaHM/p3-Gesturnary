@@ -9,7 +9,7 @@ import math
 # Settings # Settings # Settings
 
 # Use real camera of test video
-Realcam = False
+Realcam = True
 
 # Which test video to use
 Video = 3
@@ -154,30 +154,6 @@ while cap.isOpened():
         # draw contour
         cv2.drawContours(frame, contours, -2, (0, 255, 0), 3)
 
-        # bounding boxes and circles around contour
-        for c in contours:
-            # get the bounding rect
-            x, y, w, h = cv2.boundingRect(c)
-            # draw a green rectangle to visualize the bounding rect
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-            # get the min area rect
-            rect = cv2.minAreaRect(c)
-            box = cv2.boxPoints(rect)
-            # convert all coordinates floating point values to int
-            box = np.int0(box)
-            # draw a red rectangle
-            # cv2.drawContours(frame, [box], 0, (0, 0, 255))
-
-            # finally, get the min enclosing circle
-            (x, y), radius = cv2.minEnclosingCircle(c)
-            # convert all values to int
-            center = (int(x), int(y))
-            radius = int(radius)
-            # and draw the circle in blue
-            img = cv2.circle(frame, center, radius, (255, 0, 0), 2)
-            # highlight center
-            cv2.circle(frame, (int(x), int(y)), 5, (255, 0, 0), -1)
 
         if contours:
 
@@ -212,7 +188,8 @@ while cap.isOpened():
                 cv2.drawContours(frame, [res], 0, (0, 255, 0), 2)
                 cv2.drawContours(frame, [hull], 0, (0, 0, 255), 3)
 
-                isFinishCal, cnt = calculateFingers(res, drawing)
+                with suppress(Exception):
+                    isFinishCal, cnt = calculateFingers(res, drawing)
 
                 # calculate moments of binary image
                 M = cv2.moments(mask)
@@ -225,30 +202,21 @@ while cap.isOpened():
                 cY = int(M["m01"] / M["m00"])
 
                 center = cX, cY
-                s = defects[:, 0][:, 0]
+                with suppress(Exception):
+                    s = defects[:, 0][:, 0]
                 # put text and highlight the center
                 cv2.circle(frame, center, 5, (255, 0, 255), -1)
 
                 # cv2.line(drawing, center, far, (255, 0, 255), -1)
 
-            if defects is not None:
-                for i in range(defects.shape[0]):
-                    s, e, f, d = defects[i, 0]
-                    start = tuple(max_contour[s][0])
-                    end = tuple(max_contour[e][0])  # 2 - get new end position.
-                    far = tuple(max_contour[f][0])
-                    cv2.line(frame, start, end, [255, 255, 0], 2)
-                    cv2.circle(frame, end, 5, [0, 0, 255], -1)
 
-                    # draw line from center to end
-                    cv2.line(frame, center, end, [255, 255, 0], 2)
 
                 # Draw
-                if cnt >= 3:
+                if cnt >= 4:
 
                     cv2.circle(drawing, center, PenSize, PenColor, -1)  # 3 - make circle at that position.
                     if draw is True:
-                        cv2.circle(drawing, end, PenSize, PenColor, -1)  # 3 - make circle at that position.
+
                         # with suppress(Exception):
                         # cv2.line(drawing, Lastend, end, PenColor, PenSize*2)
 
@@ -282,8 +250,13 @@ while cap.isOpened():
                     # Show all images
 
         # cv2.imshow('Mask', mask)
-        cv2.imshow('Frame', frame)
-        cv2.imshow('Drawing', drawing)
+        frameHorizontal = cv2.flip(frame, 1)
+        cv2.imshow('Frame', frameHorizontal)
+        if not WhiteBK:
+            drawing = np.full(frame.shape, 255, dtype=np.uint8)
+            WhiteBK = True
+        drawingHorizontal = cv2.flip(drawing, 1)
+        cv2.imshow('Drawing', drawingHorizontal)
 
     else:
         # replay mp4

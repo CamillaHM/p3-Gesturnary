@@ -251,13 +251,15 @@ while cap.isOpened():
 
         # cv2.imshow('Mask', mask)
         frameHorizontal = cv2.flip(frame, 1)
-        cv2.imshow('Frame', frameHorizontal)
+        # cv2.imshow('Frame', frameHorizontal)
         if not WhiteBK:
             drawing = np.full(frame.shape, 255, dtype=np.uint8)
             WhiteBK = True
         drawingHorizontal = cv2.flip(drawing, 1)
-        cv2.imshow('Drawing', drawingHorizontal)
+        # cv2.imshow('Drawing', drawingHorizontal)
 
+        Gesturnary = np.concatenate((frameHorizontal, drawingHorizontal), axis=1)
+        cv2.imshow('Gesturnary', Gesturnary)
     else:
         # replay mp4
         draw = False

@@ -4,6 +4,8 @@ from contextlib import suppress
 import math
 
 # Settings # Settings # Settings
+import matplotlib.pyplot as plt
+
 
 # Use real camera or test videos
 Realcam = True
@@ -61,6 +63,8 @@ WhiteBK = False
 end=()
 cnt = 0
 drawing = ()
+center=()
+MarkerFrame = ()
 key = cv2.waitKey(1)
 
 
@@ -97,6 +101,7 @@ while cap.isOpened():
     # C to clear drawing
     if key & 0xFF == ord('c'):
         drawing = np.full(frame.shape, 255, dtype=np.uint8)
+
         WhiteBK = False
         print("cleared drawing")
 
@@ -208,12 +213,28 @@ while cap.isOpened():
         # cv2.imshow('Frame', frameHorizontal)
         if not WhiteBK:
             drawing = np.full(frame.shape, 255, dtype=np.uint8)
+
             WhiteBK = True
         drawingHorizontal = cv2.flip(drawing, 1)
         # cv2.imshow('Drawing', drawingHorizontal)
 
-        Gesturnary = np.concatenate((frameHorizontal, drawingHorizontal), axis=1)
+        # create 3 separate BGRA images as our "layers"
+        MarkerFrame = np.full(frame.shape, 255, dtype=np.uint8)
+
+
+        with suppress(Exception):
+            cv2.circle(MarkerFrame, center, 5, (255, 0, 255), -1)
+
+        MarkerFrameHorizontal = cv2.flip(MarkerFrame, 1)
+        #cv2.imshow("out.png", MarkerFrameHorizontal)
+
+        Gesturnary2 = cv2.addWeighted(MarkerFrameHorizontal, 0.5, drawingHorizontal, 0.5, 0)
+
+        Gesturnary = np.concatenate((frameHorizontal, Gesturnary2), axis=1)
         cv2.imshow('Gesturnary', Gesturnary)
+
+
+
     else:
         # replay mp4
         draw = False

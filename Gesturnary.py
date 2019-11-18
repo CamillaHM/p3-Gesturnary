@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 from contextlib import suppress
+
 # Toggle between using camera or test video
 
 
@@ -22,26 +23,24 @@ Video = 1
 pMarker = True
 pMarkerSize = 20
 pMarkerPos = []
-pMarkerColor = (255,0,0)
+pMarkerColor = (255, 0, 0)
 pMarkerThick = -1
 
 # EraserMarker settings
 eMarker = True
 eMarkerSize = 20
-eMarkerColor = (0,0,0)
+eMarkerColor = (0, 0, 0)
 eMarkerThick = 1
 
 # Pen settings
 draw = True
 PenSize = 4
-PenColor = (0,0,0)
+PenColor = (0, 0, 0)
 
 # Eraser settings
 eraser = False
 EraserSize = 20
-EraserColor = (255,255,255)
-
-
+EraserColor = (255, 255, 255)
 
 # End of settings # End of settings # End of settings
 
@@ -49,17 +48,16 @@ FingerVid = "Vid1.mp4"
 OpenVid = "Vid2.mp4"
 OpenAndClosedVid = "Vid3.mp4"
 
-if Realcam == True:
+if Realcam:
     cap = cv2.VideoCapture(0)
 
-if Realcam == False:
+if not Realcam:
     if Video == 1:
         cap = cv2.VideoCapture(FingerVid)
     if Video == 2:
         cap = cv2.VideoCapture(OpenVid)
     if Video == 3:
         cap = cv2.VideoCapture(OpenAndClosedVid)
-
 
 WhiteBK = False
 
@@ -71,23 +69,23 @@ Lastend = ()
 
 key = cv2.waitKey(1)
 
-while(cap.isOpened()):
+while cap.isOpened():
     # Capture frame-by-frame
     ret, frame = cap.read()
 
     # C to clear drawing
-    if (key & 0xFF == ord('c')):
+    if key & 0xFF == ord('c'):
         drawing = np.full(frame.shape, 255, dtype=np.uint8)
         print("cleared drawing")
 
     # S to start drawing
-    if key & 0xFF == ord('s') and draw == False:
+    if key & 0xFF == ord('s') and draw is False:
         draw = True
         eraser = False
         print("started drawing")
 
     # D to stop drawing
-    if (key & 0xFF == ord('d')) and eraser == False:
+    if (key & 0xFF == ord('d')) and eraser is False:
         eraser = True
         draw = False
         print("started eraser")
@@ -121,7 +119,6 @@ while(cap.isOpened()):
         # draw contour
         cv2.drawContours(frame, contours, -2, (0, 255, 0), 3)
 
-
         # bounding boxes and circles around countour
         for c in contours:
             # get the bounding rect
@@ -135,7 +132,7 @@ while(cap.isOpened()):
             # convert all coordinates floating point values to int
             box = np.int0(box)
             # draw a red rectangle
-            #cv2.drawContours(frame, [box], 0, (0, 0, 255))
+            # cv2.drawContours(frame, [box], 0, (0, 0, 255))
 
             # finally, get the min enclosing circle
             (x, y), radius = cv2.minEnclosingCircle(c)
@@ -145,7 +142,7 @@ while(cap.isOpened()):
             # and draw the circle in blue
             img = cv2.circle(frame, center, radius, (255, 0, 0), 2)
             # highlight center
-            cv2.circle(frame, ((int(x),int(y))), 5, (255, 0, 0), -1)
+            cv2.circle(frame, (int(x), int(y)), 5, (255, 0, 0), -1)
 
         if contours:
             # assume largest contour is the one of interest
@@ -159,21 +156,20 @@ while(cap.isOpened()):
             defects = cv2.convexityDefects(max_contour, hull)
 
             with suppress(Exception):
-                Lastend = end     # 1 - save current end position as copy.
+                Lastend = end  # 1 - save current end position as copy.
 
             # image = cv2.putText(drawing, 'OpenCV', end, font, 1, (200, 0, 0), 3, cv2.LINE_AA)
-
 
             if defects is not None:
                 for i in range(defects.shape[0]):
                     s, e, f, d = defects[i, 0]
                     start = tuple(max_contour[s][0])
-                    end = tuple(max_contour[e][0])   # 2 - get new end position.
+                    end = tuple(max_contour[e][0])  # 2 - get new end position.
                     far = tuple(max_contour[f][0])
                     cv2.line(frame, start, end, [255, 255, 0], 2)
                     cv2.circle(frame, end, 5, [0, 0, 255], -1)
 
-                # draw line from center to end
+                    # draw line from center to end
                     cv2.line(frame, center, end, [255, 255, 0], 2)
 
                     c = 0
@@ -190,14 +186,12 @@ while(cap.isOpened()):
                     # Pen
                     if draw is True:
                         cv2.circle(drawing, end, PenSize, PenColor, -1)  # 3 - make circle at that position.
-                        #with suppress(Exception):
-                            #cv2.line(drawing, Lastend, end, PenColor, PenSize*2)
-
+                        # with suppress(Exception):
+                        # cv2.line(drawing, Lastend, end, PenColor, PenSize*2)
 
                     # Eraser
                     if eraser is True:
                         cv2.circle(drawing, end, EraserSize, EraserColor, -1)
-
 
                     # Show all images
         cv2.imshow('Mask', mask)
@@ -206,11 +200,10 @@ while(cap.isOpened()):
 
     else:
         # replay mp4
-       cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 cap.release()
 cv2.destroyAllWindows()
-

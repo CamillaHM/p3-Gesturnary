@@ -1,19 +1,15 @@
 import numpy as np
 import cv2
 from contextlib import suppress
-# Toggle between using camera or test video
-
+import math
 
 # Settings # Settings # Settings
-
-
-# Test settings
 
 # Use real camera of test video
 Realcam = False
 
 # Which test video to use
-Video = 1
+Video = 3
 # 1 - One finger
 # 2 - Open hand
 # 3 - Switches between open and closed hand
@@ -45,6 +41,9 @@ EraserColor = (255,255,255)
 
 # End of settings # End of settings # End of settings
 
+lastend=()
+cnt = ()
+Max_Fingers = 4
 FingerVid = "Vid1.mp4"
 OpenVid = "Vid2.mp4"
 OpenAndClosedVid = "Vid3.mp4"
@@ -64,39 +63,60 @@ if Realcam == False:
 WhiteBK = False
 
 colorsArray = []
-
+far=()
 pMarkerPos = []
-
-Lastend = ()
-
+centroid=()
+contour=()
+end = ()
+center = ()
+cnt = 0
+drawing = ()
 key = cv2.waitKey(1)
+
+
+
+def calculateFingers(res, drawing):  # -> finished bool, cnt: finger count
+    #  convexity defect
+
+    hull = cv2.convexHull(res, returnPoints=False)
+    if len(hull) > 3:
+        defects = cv2.convexityDefects(res, hull)
+        if type(defects) != type(None):  # avoid crashing.   (BUG not found)
+            cnt = 0
+            for i in range(defects.shape[0]):  # calculate the angle
+                s, e, f, d = defects[i][0]
+                start = tuple(res[s][0])
+                end = tuple(res[e][0])
+                far = tuple(res[f][0])
+                a = math.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
+                b = math.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
+                c = math.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
+                angle = math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c))  # cosine theorem
+
+               # Drawing stuff
+                #cv2.circle(frame, far, 8, [211, 84, 0], -1)
+
+                #cv2.line(frame, center, far, (255, 0, 255), -1)
+
+                if angle <= math.pi / 2:  # angle less than 90 degree, treat as fingers
+                    if cnt <= Max_Fingers: # stop finding fingers after x number has been found
+                        cnt += 1
+                        cv2.circle(frame, far, 8, [211, 84, 0], -1)
+
+            return True, cnt
+
+
 
 while(cap.isOpened()):
     # Capture frame-by-frame
     ret, frame = cap.read()
 
-    # C to clear drawing
+    # C to clear
     if (key & 0xFF == ord('c')):
-        drawing = np.full(frame.shape, 255, dtype=np.uint8)
+        WhiteBK = False
         print("cleared drawing")
 
-    # S to start drawing
-    if key & 0xFF == ord('s') and draw == False:
-        draw = True
-        eraser = False
-        print("started drawing")
 
-    # D to stop drawing
-    if (key & 0xFF == ord('d')) and eraser == False:
-        eraser = True
-        draw = False
-        print("started eraser")
-
-    # A to start drawing
-    if key & 0xFF == ord('a'):
-        eraser = False
-        draw = False
-        print("stopped all")
 
     if ret:
         # Blur image
@@ -118,36 +138,11 @@ while(cap.isOpened()):
         with suppress(Exception):
             image, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        # draw contour
-        cv2.drawContours(frame, contours, -2, (0, 255, 0), 3)
-
-
-        # bounding boxes and circles around countour
-        for c in contours:
-            # get the bounding rect
-            x, y, w, h = cv2.boundingRect(c)
-            # draw a green rectangle to visualize the bounding rect
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-            # get the min area rect
-            rect = cv2.minAreaRect(c)
-            box = cv2.boxPoints(rect)
-            # convert all coordinates floating point values to int
-            box = np.int0(box)
-            # draw a red rectangle
-            #cv2.drawContours(frame, [box], 0, (0, 0, 255))
-
-            # finally, get the min enclosing circle
-            (x, y), radius = cv2.minEnclosingCircle(c)
-            # convert all values to int
-            center = (int(x), int(y))
-            radius = int(radius)
-            # and draw the circle in blue
-            img = cv2.circle(frame, center, radius, (255, 0, 0), 2)
-            # highlight center
-            cv2.circle(frame, ((int(x),int(y))), 5, (255, 0, 0), -1)
 
         if contours:
+
+            key = cv2.waitKey(1)
+
             # assume largest contour is the one of interest
             max_contour = max(contours, key=cv2.contourArea)
 
@@ -158,55 +153,95 @@ while(cap.isOpened()):
             hull = cv2.convexHull(max_contour, returnPoints=False)
             defects = cv2.convexityDefects(max_contour, hull)
 
-            with suppress(Exception):
-                Lastend = end     # 1 - save current end position as copy.
 
             # image = cv2.putText(drawing, 'OpenCV', end, font, 1, (200, 0, 0), 3, cv2.LINE_AA)
+            length = len(contours)
+            maxArea = -1
+            if length > 0:
+                for i in range(length):  # find the biggest contour (according to area)
+                    temp = contours[i]
+                    area = cv2.contourArea(temp)
+                    if area > maxArea:
+                        maxArea = area
+                        ci = i
+
+                res = contours[ci]
+                hull = cv2.convexHull(res)
+                cv2.drawContours(frame, [res], 0, (0, 255, 0), 2)
+                cv2.drawContours(frame, [hull], 0, (0, 0, 255), 3)
+
+                isFinishCal, cnt = calculateFingers(res, drawing)
+
+                # calculate moments of binary image
+                M = cv2.moments(mask)
+
+                if draw is True:
+                    with suppress(Exception):
+                        lastend = center  # 1 - save current end position as copy.
+                # calculate x,y coordinate of center
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+
+                center = cX, cY
+                s = defects[:, 0][:, 0]
+                # put text and highlight the center
+                cv2.circle(frame, center, 5, (255, 0, 255), -1)
+
+                #cv2.line(drawing, center, far, (255, 0, 255), -1)
 
 
-            if defects is not None:
-                for i in range(defects.shape[0]):
-                    s, e, f, d = defects[i, 0]
-                    start = tuple(max_contour[s][0])
-                    end = tuple(max_contour[e][0])   # 2 - get new end position.
-                    far = tuple(max_contour[f][0])
-                    cv2.line(frame, start, end, [255, 255, 0], 2)
-                    cv2.circle(frame, end, 5, [0, 0, 255], -1)
 
-                # draw line from center to end
-                    cv2.line(frame, center, end, [255, 255, 0], 2)
 
-                    c = 0
-                    X = 0
-                    Y = 0
-                    # white background on "drawing"
 
-                    if WhiteBK is False:
-                        drawing = np.full(frame.shape, 255, dtype=np.uint8)
-                        WhiteBK = True
-                    key = cv2.waitKey(1)
 
-                    # Draw- draw circle at drawing point in "drawing"
-                    # Pen
+
+                # Draw
+                if cnt >= 3:
+
+                    cv2.circle(drawing, center, PenSize, PenColor, -1)  # 3 - make circle at that position.
                     if draw is True:
-                        cv2.circle(drawing, end, PenSize, PenColor, -1)  # 3 - make circle at that position.
-                        #with suppress(Exception):
-                            #cv2.line(drawing, Lastend, end, PenColor, PenSize*2)
+                        with suppress(Exception):
+                            cv2.line(drawing, lastend, center, PenColor, PenSize*2)
+
+                    if draw is False:
+                        print("Draw gesture found with " + str(cnt) + " fingers")
+                        lastend=()
+                        draw = True
+                        eraser = False
 
 
-                    # Eraser
-                    if eraser is True:
-                        cv2.circle(drawing, end, EraserSize, EraserColor, -1)
 
+
+                # Eraser
+                if cnt == 0:
+                    cv2.circle(drawing, center, EraserSize, EraserColor, -1)
+                    if eraser is False:
+                        print("Erase gesture found with " + str(cnt) + " fingers")
+                        lastend = ()
+                        eraser = True
+                        draw = False
+
+
+                #if isFinishCal is True and cnt <= 2:
+                    #print(cnt)
+                    # app('System Events').keystroke(' ')  # simulate pressing blank space
+
+                # Clear
+                if WhiteBK == False:
+                    drawing = np.full(frame.shape, 255, dtype=np.uint8)
+                    WhiteBK = True
 
                     # Show all images
-        cv2.imshow('Mask', mask)
+
+        #cv2.imshow('Mask', mask)
         cv2.imshow('Frame', frame)
         cv2.imshow('Drawing', drawing)
 
     else:
         # replay mp4
-       cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        draw = False
+        lastend = ()
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

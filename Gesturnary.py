@@ -4,8 +4,7 @@ from contextlib import suppress
 import math
 
 # Settings # Settings # Settings
-import matplotlib.pyplot as plt
-
+# import matplotlib.pyplot as plt
 
 # Use real camera or test videos
 Realcam = True
@@ -48,9 +47,11 @@ FingerVid = "Vid1.mp4"
 OpenVid = "Vid2.mp4"
 OpenAndClosedVid = "Vid3.mp4"
 
+# Captures video from camera
 if Realcam:
     cap = cv2.VideoCapture(0)
 
+# Captures video from video file
 if not Realcam:
     if Video == 1:
         cap = cv2.VideoCapture(FingerVid)
@@ -60,23 +61,23 @@ if not Realcam:
         cap = cv2.VideoCapture(OpenAndClosedVid)
 
 WhiteBK = False
-end=()
+end = ()
 cnt = 0
 drawing = ()
-center=()
+center = ()
 MarkerFrame = ()
 key = cv2.waitKey(1)
 
 
 def calculateFingers(res, drawing):  # -> finished bool, cnt: finger count
-    #  convexity defect
+    #  Convexity defect
 
     hull = cv2.convexHull(res, returnPoints=False)
     if len(hull) > 3:
         defects = cv2.convexityDefects(res, hull)
-        if type(defects) != type(None):  # avoid crashing.   (BUG not found)
+        if type(defects) != type(None):  # Avoid crashing.   (BUG not found)
             cnt = 0
-            for i in range(defects.shape[0]):  # calculate the angle
+            for i in range(defects.shape[0]):  # Calculate the angle
                 s, e, f, d = defects[i][0]
                 start = tuple(res[s][0])
                 end = tuple(res[e][0])
@@ -84,10 +85,10 @@ def calculateFingers(res, drawing):  # -> finished bool, cnt: finger count
                 a = math.sqrt((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2)
                 b = math.sqrt((far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2)
                 c = math.sqrt((end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2)
-                angle = math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c))  # cosine theorem
+                angle = math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c))  # Cosine theorem
 
-                if angle <= math.pi / 2:  # angle less than 90 degree, treat as fingers
-                    if cnt <= Max_Fingers:  # stop finding fingers after x number has been found
+                if angle <= math.pi / 2:  # Angle less than 90 degree, treat as fingers
+                    if cnt <= Max_Fingers:  # Stop finding fingers after x number has been found
                         cnt += 1
                         cv2.circle(frame, far, 8, [211, 84, 0], -1)
 
@@ -119,7 +120,7 @@ while cap.isOpened():
         # Threshold the HSV image to only get hand colors
         mask = cv2.inRange(hsv, lower_hand, upper_hand)
 
-        # if either fail, they will suppress and try the other
+        # If either fail, they will suppress and try the other
         with suppress(Exception):
             contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         with suppress(Exception):
@@ -129,24 +130,24 @@ while cap.isOpened():
 
             key = cv2.waitKey(1)
 
-            # assume largest contour is the one of interest
+            # Assume largest contour is the one of interest
             max_contour = max(contours, key=cv2.contourArea)
 
             epsilon = 0.01 * cv2.arcLength(max_contour, True)
             max_contour = cv2.approxPolyDP(max_contour, epsilon, True)
 
-            # determine convex hull & convexity defects of the hull
+            # Determine convex hull & convexity defects of the hull
             hull = cv2.convexHull(max_contour, returnPoints=False)
             defects = cv2.convexityDefects(max_contour, hull)
 
             with suppress(Exception):
-                Lastend = end  # 1 - save current end position as copy.
+                Lastend = end  # 1 - Save current end position as copy.
 
             # image = cv2.putText(drawing, 'OpenCV', end, font, 1, (200, 0, 0), 3, cv2.LINE_AA)
             length = len(contours)
             maxArea = -1
             if length > 0:
-                for i in range(length):  # find the biggest contour (according to area)
+                for i in range(length):  # Find the biggest contour (according to area)
                     temp = contours[i]
                     area = cv2.contourArea(temp)
                     if area > maxArea:
@@ -161,13 +162,13 @@ while cap.isOpened():
                 with suppress(Exception):
                     isFinishCal, cnt = calculateFingers(res, drawing)
 
-                # calculate moments of binary image
+                # Calculate moments of binary image
                 M = cv2.moments(mask)
 
                 if draw is True:
                     with suppress(Exception):
-                        lastend = center  # 1 - save current end position as copy.
-                # calculate x,y coordinate of center
+                        lastend = center  # 1 - Save current end position as copy.
+                # Calculate x,y coordinate of center
                 cX = int(M["m10"] / M["m00"])
                 cY = int(M["m01"] / M["m00"])
 
@@ -181,7 +182,7 @@ while cap.isOpened():
                 # Draw
                 if cnt >= 4:
 
-                    cv2.circle(drawing, center, PenSize, PenColor, -1)  # 3 - make circle at that position.
+                    cv2.circle(drawing, center, PenSize, PenColor, -1)  # 3 - Make circle at that position.
                     if draw is True:
                         with suppress(Exception):
                             cv2.line(drawing, lastend, center, PenColor, PenSize * 2)
@@ -221,29 +222,27 @@ while cap.isOpened():
         # create 3 separate BGRA images as our "layers"
         MarkerFrame = np.full(frame.shape, 255, dtype=np.uint8)
 
-
         with suppress(Exception):
             cv2.circle(MarkerFrame, center, 5, (255, 0, 255), -1)
 
         MarkerFrameHorizontal = cv2.flip(MarkerFrame, 1)
-        #cv2.imshow("out.png", MarkerFrameHorizontal)
+        # cv2.imshow("out.png", MarkerFrameHorizontal)
 
         Gesturnary2 = cv2.addWeighted(MarkerFrameHorizontal, 0.5, drawingHorizontal, 0.5, 0)
 
+        # Display video capture and drawing in the same window
         Gesturnary = np.concatenate((frameHorizontal, Gesturnary2), axis=1)
         cv2.imshow('Gesturnary', Gesturnary)
 
-
-
     else:
-        # replay mp4
+        # Replay mp4
         draw = False
         lastend = ()
         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
+# Program stops if q is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-
 
 cap.release()
 cv2.destroyAllWindows()
